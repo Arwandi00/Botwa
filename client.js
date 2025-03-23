@@ -89,7 +89,7 @@ const connect = async () => {
          require('./lib/system/baileys')(client.sock)
       })
 
-      /* print deleted message object */
+      /* print deleted message object 
       client.register('message.delete', ctx => {
          const sock = client.sock
          if (!ctx || ctx.origin.fromMe || ctx.origin.isBot || !ctx.origin.sender) return
@@ -97,85 +97,69 @@ const connect = async () => {
          cache.set(ctx.origin.sender, 1)
          if (Object.keys(ctx.delete.message) < 1) return
          if (ctx.origin.isGroup && global.db.groups.some(v => v.jid == ctx.origin.chat) && global.db.groups.find(v => v.jid == ctx.origin.chat).antidelete) return sock.copyNForward(ctx.origin.chat, ctx.delete)
-      })
+      })*/
 
-      /* AFK detector */
-      client.register('presence.update', update => {
-         if (!update) return
-         const sock = client.sock
-         const { id, presences } = update
-         if (id.endsWith('g.us')) {
-            for (let jid in presences) {
-               if (!presences[jid] || jid == sock.decodeJid(sock.user.id)) continue
-               if ((presences[jid].lastKnownPresence === 'composing' || presences[jid].lastKnownPresence === 'recording') && global.db && global.db.users && global.db.users.find(v => v.jid == jid) && global.db.users.find(v => v.jid == jid).afk > -1) {
-                  sock.reply(id, `System detects activity from @${jid.replace(/@.+/, '')} after being offline for : ${Func.texted('bold', Func.toTime(new Date - global.db.users.find(v => v.jid == jid).afk))}\n\n➠ ${Func.texted('bold', 'Reason')} : ${global.db.users.find(v => v.jid == jid).afkReason ? global.db.users.find(v => v.jid == jid).afkReason : '-'}`, global.db.users.find(v => v.jid == jid).afkObj)
-                  global.db.users.find(v => v.jid == jid).afk = -1
-                  global.db.users.find(v => v.jid == jid).afkReason = ''
-                  global.db.users.find(v => v.jid == jid).afkObj = {}
+
+       /* PRINT DELETED OBJECT
+       client.on('message.delete', async ctx => {
+         const sock = client.sock;
+         const ownerNumber = env.owner + '@s.whatsapp.net';
+         if (!ctx || ctx.origin.fromMe || ctx.origin.isBot || !ctx.origin.sender) return;
+         if (cache.has(ctx.origin.sender) && cache.get(ctx.origin.sender) === 1) return;
+         cache.set(ctx.origin.sender, 1);
+      
+         // Pastikan objek ctx.delete dan message-nya ada
+         if (!ctx.delete || !ctx.delete.message) {
+            console.error('Objek pesan yang dihapus tidak lengkap');
+            return;
+         }
+      
+         // Jika contextInfo tidak ada, tambahkan objek kosong agar tidak error
+         if (!ctx.delete.message.contextInfo) {
+            ctx.delete.message.contextInfo = {};
+         }
+      
+         try {
+            // Forward pesan yang telah dihapus ke nomor owner
+            await sock.copyNForward(ownerNumber, ctx.delete, true);
+            // Jika ingin forward juga ke grup asal, hapus komentar di bawah ini:
+            // await sock.copyNForward(ctx.origin.chat, ctx.delete);
+         } catch (error) {
+            console.error("Error saat forwarding pesan:", error);
+         }
+      });*/
+      
+         /*DELETE*/
+         client.on('message.delete', async ctx => {
+            try {
+               const sock = client.sock;
+               const ownerNumber = env.owner + '@s.whatsapp.net';
+               
+               // Pastikan objek pesan yang dihapus ada dan memiliki struktur yang tepat
+               if (!ctx || !ctx.delete || !ctx.delete.message) {
+                  console.error("Pesan yang dihapus tidak lengkap.");
+                  return;
                }
+               
+               // Iterasi setiap properti dari objek pesan dan pastikan contextInfo ada
+               for (let key in ctx.delete.message) {
+                  if (ctx.delete.message[key] && typeof ctx.delete.message[key] === 'object') {
+                     if (!ctx.delete.message[key].contextInfo) {
+                        ctx.delete.message[key].contextInfo = {};
+                     }
+                  }
+               }
+               
+               // Lanjutkan proses forwarding ke owner
+               await sock.copyNForward(ownerNumber, ctx.delete, true);
+            } catch (error) {
+               console.error("Error saat forwarding pesan:", error);
             }
-         } else { }
-      })
+         });
+         
+      
 
-      client.register('group.add', async ctx => {
-         const sock = client.sock
-         const text = `Thanks +tag for joining into +grup group.`
-         const groupSet = global.db.groups.find(v => v.jid == ctx.jid)
-         if (!global.db || !global.db.groups) return
-         try {
-            var pic = await sock.profilePictureUrl(ctx.member, 'image')
-            if (!pic) {
-               var pic = 'https://qu.ax/uPqo.jpg'
-            }
-         } catch {
-            var pic = 'https://qu.ax/uPqo.jpg'
-         }
-
-         /* localonly to remove new member when the number not from indonesia */
-         if (groupSet && groupSet.localonly) {
-            if (global.db.users.some(v => v.jid == ctx.member) && !global.db.users.find(v => v.jid == ctx.member).whitelist && !ctx.member.startsWith('62') || !ctx.member.startsWith('62')) {
-               sock.reply(ctx.jid, Func.texted('bold', `Sorry @${ctx.member.split`@`[0]}, this group is only for indonesian people and you will removed automatically.`))
-               sock.updateBlockStatus(member, 'block')
-               return await Func.delay(2000).then(() => sock.groupParticipantsUpdate(ctx.jid, [ctx.member], 'remove'))
-            }
-         }
-
-         const txt = (groupSet && groupSet.text_welcome ? groupSet.text_welcome : text).replace('+tag', `@${ctx.member.split`@`[0]}`).replace('+grup', `${ctx.subject}`)
-         if (groupSet && groupSet.welcome) sock.sendMessageModify(ctx.jid, txt, null, {
-            largeThumb: true,
-            thumbnail: pic,
-            url: global.db.setting.link
-         })
-      })
-
-      client.register('group.remove', async ctx => {
-         const sock = client.sock
-         const text = `Good bye +tag :)`
-         if (!global.db || !global.db.groups) return
-         const groupSet = global.db.groups.find(v => v.jid == ctx.jid)
-         try {
-            var pic = await sock.profilePictureUrl(ctx.member, 'image')
-            if (!pic) {
-               var pic = 'https://qu.ax/uPqo.jpg'
-            }
-         } catch {
-            var pic = 'https://qu.ax/uPqo.jpg'
-         }
-         const txt = (groupSet && groupSet.text_left ? groupSet.text_left : text).replace('+tag', `@${ctx.member.split`@`[0]}`).replace('+grup', `${ctx.subject}`)
-         if (groupSet && groupSet.left) sock.sendMessageModify(ctx.jid, txt, null, {
-            largeThumb: true,
-            thumbnail: pic,
-            url: global.db.setting.link
-         })
-      })
-
-      client.register('caller', ctx => {
-         if (typeof ctx === 'boolean') return
-         client.sock.updateBlockStatus(ctx.jid, 'block')
-      })
-
-      // client.on('group.promote', ctx => console.log(ctx))
-      // client.on('group.demote', ctx => console.log(ctx))
+   
 
    } catch (e) {
       throw new Error(e)
