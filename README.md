@@ -1,3 +1,17 @@
+## RECODE DIKIT 
+1. AUTO CONNECT SESSION BACKUP
+COMNG SOON.......
+
+## Sosial Media
+WA: wa.me/6285161098098
+Instagram: arwandi654
+
+
+
+
+
+
+
 ## NEOXR-BOT (BETA TEST)
 
 > An implementation of [@neoxr/wb](https://www.npmjs.com/package/@neoxr/wb) which has been optimized to be lightweigth.  
