@@ -1,10 +1,10 @@
 ## RECODE DIKIT 
 >1. AUTO CONNECT SESSION BACKUP
->COMNG SOON.......
+><p>COMNG SOON.......
 
 ## Sosial Media
 >WA: wa.me/6285161098098
->Instagram: arwandi654
+><p>Instagram: arwandi654
 
 
 
